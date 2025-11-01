@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: teekasarthi-db
+    environment:
+      POSTGRES_DB: teekasarthi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  teekasarthi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teekasarthi-backend
+    environment:
+      SPRING_APPLICATION_NAME: teekasarthi
+      SPRING_DATASOURCE_URL: jdbc:postgresql://immuno-track-krishi-sarthi-backend.j.aivencloud.com:17859/defaultdb?sslmode=require
+      SPRING_DATASOURCE_USERNAME: avnadmin
+      SPRING_DATASOURCE_PASSWORD: AVNS_AjAvs8-qrgp73XQw47f
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: teekasarthi@gmail.com
+      SPRING_MAIL_PASSWORD: zmae plgd onrq sagq
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      JWT_SECRET: yBuY29XydVrZwh3Ifrc4cLDLw3psqLRNCakl27068FOfpkeeALSFkgHqkmZkaP9WsRQk+g2P55xQTUtFV1r8FA==
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - teekasarthi-net
+
+volumes:
+  postgres_data:
+
+networks:
+  teekasarthi-net:
