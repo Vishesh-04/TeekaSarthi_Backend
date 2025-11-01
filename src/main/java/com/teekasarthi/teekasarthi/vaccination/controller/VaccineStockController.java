@@ -1,4 +1,5 @@
 package com.teekasarthi.teekasarthi.vaccination.controller;
+
 import com.teekasarthi.teekasarthi.vaccination.entity.VaccineStock;
 import com.teekasarthi.teekasarthi.vaccination.service.VaccineStockService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,7 @@ public class VaccineStockController {
         return vaccineStockService.findStockById(id)
                 .map(existingStock -> {
                     updatedStock.setId(id);
+                    // This calls the service layer which handles the calculation and reset
                     VaccineStock savedStock = vaccineStockService.saveStock(updatedStock);
                     return ResponseEntity.ok(savedStock);
                 })
