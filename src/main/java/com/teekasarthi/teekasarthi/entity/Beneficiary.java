@@ -37,7 +37,9 @@ public class Beneficiary {
     // Default to false
     private String verifiedBy;
     // Optional: Center info (autofilled from frontend)
-    private String centerName;
+    private Long centerId;
+    private LocalDate nextDueDate;
+
 
     private String guardian_name;
     private String email;

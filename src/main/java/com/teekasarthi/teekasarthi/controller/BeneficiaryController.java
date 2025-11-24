@@ -40,7 +40,7 @@ public class BeneficiaryController {
             @RequestParam("phoneNo") String phoneNo,
             @RequestParam("address") String address,
             @RequestParam("city") String city,
-            @RequestParam("centerName") String centerName,
+            @RequestParam("centerName") Long centerId,
             @RequestParam("pincode") String pincode,
             @RequestParam(value = "photo", required = false) MultipartFile photo
     ) {
@@ -57,7 +57,7 @@ public class BeneficiaryController {
             beneficiary.setPhoneNo(phoneNo);
             beneficiary.setAddress(address);
             beneficiary.setCity(city);
-            beneficiary.setCenterName(centerName);
+            beneficiary.setCenterId(centerId);
             beneficiary.setPincode(Integer.parseInt(pincode));
             beneficiary.setStatus("PENDING");
 
