@@ -21,7 +21,6 @@ import java.util.Optional;
 @RequestMapping("/api/supervisor/distribution")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:5173","http://localhost:3000"})
 public class DistributionController {
 
     private final ScheduleDistributionService distributionService;

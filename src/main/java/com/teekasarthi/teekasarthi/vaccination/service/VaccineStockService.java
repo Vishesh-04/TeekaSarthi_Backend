@@ -1,5 +1,7 @@
 package com.teekasarthi.teekasarthi.vaccination.service;
 
+import com.teekasarthi.teekasarthi.supervisor.entity.Center;
+import com.teekasarthi.teekasarthi.supervisor.repository.CenterRepository;
 import com.teekasarthi.teekasarthi.vaccination.entity.VaccineStock;
 import com.teekasarthi.teekasarthi.vaccination.repository.VaccineStockRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,32 @@ public class VaccineStockService {
     @Autowired
     private VaccineStockRepository vaccineStockRepository;
 
+    @Autowired
+    private CenterRepository centerRepository;
+
+    // --- NEW: Find stock specific to a center ---
+    public List<VaccineStock> findStockByCenterId(Long centerId) {
+        return vaccineStockRepository.findByCenterId(centerId);
+    }
+
+    // --- NEW: Add stock linked to a center ---
+    public VaccineStock addStockToCenter(Long centerId, VaccineStock vaccineStock) {
+        // 1. Fetch the Center entity
+        Center center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new RuntimeException("Center not found with ID: " + centerId));
+
+        // 2. Link the stock to the center
+        vaccineStock.setCenter(center);
+
+        // 3. Initialize daily trackers to 0
+        vaccineStock.setUsedStock(0);
+        vaccineStock.setReceivedStock(0);
+
+        return vaccineStockRepository.save(vaccineStock);
+    }
+
+    // Existing methods below...
+
     public List<VaccineStock> findAllStock() {
         return vaccineStockRepository.findAll();
     }
@@ -24,12 +52,6 @@ public class VaccineStockService {
 
     /**
      * Handles both creating new stock (POST) and updating existing stock (PUT).
-     * * For existing stock, this function implements the core inventory logic:
-     * 1. Calculates the net change: (Received Today) - (Used Today).
-     * 2. Updates the Current Stock: (Old Current Stock) + (Net Change).
-     * 3. Resets 'usedStock' and 'receivedStock' to 0 for the next day's reporting.
-     * * @param vaccineStock The incoming VaccineStock object from the request body.
-     * @return The saved VaccineStock object.
      */
     public VaccineStock saveStock(VaccineStock vaccineStock) {
         if (vaccineStock.getId() != null) {
@@ -38,23 +60,24 @@ public class VaccineStockService {
             if (optionalExistingStock.isPresent()) {
                 VaccineStock existingStock = optionalExistingStock.get();
 
-                // 1. Calculate the change in stock based on data from the PUT request
+                // 1. Calculate the change in stock
                 int netChange = vaccineStock.getReceivedStock() - vaccineStock.getUsedStock();
 
-                // 2. Update current stock: Old Current Stock + Net Change
+                // 2. Update current stock
                 int newCurrentStock = existingStock.getCurrentStock() + netChange;
 
                 // --- Update fields on the existing entity ---
-
-                // Apply the calculated current stock
                 existingStock.setCurrentStock(newCurrentStock);
-
-                // Apply non-numerical fields from the update object
                 existingStock.setName(vaccineStock.getName());
                 existingStock.setExpiryDate(vaccineStock.getExpiryDate());
                 existingStock.setStatus(vaccineStock.getStatus());
 
-                // 3. Reset daily tracking fields to 0 for the next GET request
+                // Ensure Center is preserved if passed, or keep existing
+                if (vaccineStock.getCenter() != null) {
+                    existingStock.setCenter(vaccineStock.getCenter());
+                }
+
+                // 3. Reset daily tracking fields
                 existingStock.setUsedStock(0);
                 existingStock.setReceivedStock(0);
 
@@ -62,7 +85,7 @@ public class VaccineStockService {
             }
         }
 
-        // For new stocks (POST), save directly but ensure daily trackers are 0.
+        // For new stocks not linked via addStockToCenter (fallback)
         vaccineStock.setUsedStock(0);
         vaccineStock.setReceivedStock(0);
         return vaccineStockRepository.save(vaccineStock);
@@ -82,6 +105,4 @@ public class VaccineStockService {
             return Optional.empty();
         }
     }
-
-    // The previous updateStockCounts method has been removed as its logic is now contained within the unified saveStock method.
 }

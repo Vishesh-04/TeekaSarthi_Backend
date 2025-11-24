@@ -40,8 +40,7 @@ public class BeneficiaryService {
         return beneficiaryRepo.findByEmail(email);
     }
 
-    public List<Beneficiary> getPendingBeneficiaries() {
-        // This calls the new method from the repository
-        return beneficiaryRepo.findByStatus("PENDING");
+    public List<Beneficiary> getPendingBeneficiaries(Long centerId) {
+        return beneficiaryRepo.findByStatusAndCenterId("PENDING_VERIFICATION", centerId);
     }
 }

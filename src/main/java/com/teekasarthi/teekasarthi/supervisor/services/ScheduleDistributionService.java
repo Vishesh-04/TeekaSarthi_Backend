@@ -2,9 +2,7 @@ package com.teekasarthi.teekasarthi.supervisor.services;
 
 import com.teekasarthi.teekasarthi.entity.Beneficiary;
 import com.teekasarthi.teekasarthi.repository.BeneficiaryRepo;
-import com.teekasarthi.teekasarthi.supervisor.entity.LoadOverflow;
-import com.teekasarthi.teekasarthi.supervisor.entity.Worker;
-import com.teekasarthi.teekasarthi.supervisor.entity.WorkerDailyAssignment;
+import com.teekasarthi.teekasarthi.supervisor.entity.*;
 import com.teekasarthi.teekasarthi.supervisor.repository.CenterRepository;
 import com.teekasarthi.teekasarthi.supervisor.repository.LoadOverflowRepository;
 import com.teekasarthi.teekasarthi.supervisor.repository.WorkerDailyAssignmentRepository;
@@ -23,165 +21,166 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ScheduleDistributionService {
 
-    private static final int CAPACITY_PER_WORKER =10;
+    // Hard limit per worker
+    private static final int CAPACITY_PER_WORKER = 10;
 
     private final WorkerRepository workerRepository;
     private final LoadOverflowRepository loadOverflowRepository;
     private final WorkerDailyAssignmentRepository workerDailyAssignmentRepository;
     private final BeneficiaryRepo beneficiaryRepo;
-    private  final CenterRepository centerRepository;
+    private final CenterRepository centerRepository;
 
     public int computeLoadForCenter(Long centerId, LocalDate date) {
         Long due = beneficiaryRepo.countByCenterIdAndNextDueDate(centerId, date);
-        int totalDue = due.intValue();
-        int overflow = loadOverflowRepository.findByCenter_IdAndDate(centerId, date)
+        int totalDue = due != null ? due.intValue() : 0;
+
+        // Check if there was overflow from the previous day meant for today
+        int overflowFromYesterday = loadOverflowRepository.findByCenter_IdAndDate(centerId, date)
                 .map(LoadOverflow::getLeftover)
                 .orElse(0);
-        return totalDue + overflow;
 
+        return totalDue + overflowFromYesterday;
     }
 
     @Transactional
     public void distributeForCenterAndDate(Long centerId, LocalDate date) {
-        log.info("Starting distribution for center={} date={}", centerId, date);
+        log.info("Starting ENTITY distribution for center={} date={}", centerId, date);
 
-        var centerOpt = centerRepository.findById(centerId);
-        if (centerOpt.isEmpty()) {
+        Center center = centerRepository.findById(centerId).orElse(null);
+        if (center == null) {
             log.warn("Center {} not found, aborting distribution", centerId);
             return;
         }
-        int load = computeLoadForCenter(centerId, date);
-        log.info("Computed load = {} for center {}", load, centerId);
+
+        // 1. Fetch Actual Beneficiaries (The Workload)
+        // We need the actual entities now, not just the count.
+        List<Beneficiary> allBeneficiaries = beneficiaryRepo.findAllByCenterIdAndNextDueDate(centerId, date);
+        int totalLoad = allBeneficiaries.size();
+        log.info("Found {} beneficiaries due for center {}", totalLoad, centerId);
+
+        // Note: We are ignoring 'LoadOverflow' table for fetching here because
+        // we need actual Beneficiary entities to create AssignmentTasks.
+        // If "Overflow" means "People from yesterday", they should be queried via date logic.
+
+        if (totalLoad == 0) {
+            log.info("No beneficiaries to distribute for center {}", centerId);
+            return;
+        }
+
+        // 2. Get Active Workers
         List<Worker> workers = workerRepository.findByCenterId(centerId)
                 .stream()
                 .filter(w -> Boolean.TRUE.equals(w.getActive()))
                 .sorted(Comparator.comparingLong(Worker::getId))
                 .collect(Collectors.toList());
 
-        if ((workers.isEmpty())) {
-            log.warn("No active workers found for center {}, cannot distribute load", centerId);
-            saveOverflow(centerId, date.plusDays(1), load);
+        // 3. Handle No Workers case
+        if (workers.isEmpty()) {
+            log.warn("No active workers found for center {}, pushing stats to overflow", centerId);
+            // We cannot assign tasks if no workers, so we just log the overflow count
+            saveOverflow(center, date.plusDays(1), totalLoad);
             return;
         }
 
-        List<WorkerDailyAssignment> existing = workerDailyAssignmentRepository
-                .findByCenter_IdAndDate(centerId, date);
+        // 4. Clean existing assignments for this day
+        List<WorkerDailyAssignment> existing = workerDailyAssignmentRepository.findByCenter_IdAndDate(centerId, date);
         if (!existing.isEmpty()) {
+            log.info("Found {} existing assignments. Overwriting.", existing.size());
+            // JPA CascadeType.ALL on 'tasks' will automatically delete the child AssignmentTasks
             workerDailyAssignmentRepository.deleteAll(existing);
-            log.info("Assignments already exist for center={} date={}, skipping distribution", centerId, date);
+            workerDailyAssignmentRepository.flush();
         }
 
-        int n = workers.size();
+        // 5. Calculate Capacity & Slice the List
+        int numWorkers = workers.size();
+        int totalCapacity = numWorkers * CAPACITY_PER_WORKER;
 
-        // base and remainder
-        int base = load / n;
-        int remainder = load % n;
+        List<Beneficiary> beneficiariesToAssign;
+        int overflowCount = 0;
 
-        // prepare assignments
-        List<WorkerDailyAssignment> assignments = new ArrayList<>();
-        Map<Long, Integer> assignedMap = new LinkedHashMap<>();
-        for (int i = 0; i < n; i++) {
-            Worker w = workers.get(i);
-            int tentative = base + (i < remainder ? 1 : 0);
-            assignedMap.put(w.getId(), tentative);
+        if (totalLoad > totalCapacity) {
+            // Take only as many as we can fit
+            beneficiariesToAssign = allBeneficiaries.subList(0, totalCapacity);
+            // The rest are overflow
+            overflowCount = totalLoad - totalCapacity;
+        } else {
+            // We can fit everyone
+            beneficiariesToAssign = allBeneficiaries;
+            overflowCount = 0;
         }
 
-        int totalAssigned = assignedMap.values().stream().mapToInt(Integer::intValue).sum();
-        log.info("Total assigned = {}, Load = {}", totalAssigned, load);
+        // 6. Distribute the "beneficiariesToAssign" list among workers
+        int assignableCount = beneficiariesToAssign.size();
+        int baseAssignment = assignableCount / numWorkers;
+        int remainder = assignableCount % numWorkers;
 
-        int remaining = 0;
-        for (Worker w : workers) {
-            int val = assignedMap.get(w.getId());
-            if (val > CAPACITY_PER_WORKER) {
-                remaining += (val - CAPACITY_PER_WORKER);
-                assignedMap.put(w.getId(), CAPACITY_PER_WORKER);
-            }
-        }
-        totalAssigned = assignedMap.values().stream().mapToInt(Integer::intValue).sum();
-        remaining += (load - totalAssigned);
-        log.info("After capacity check, total assigned = {}, Remaining = {}", totalAssigned, remaining);
+        // "Cursor" to track which beneficiary we are currently picking from the list
+        int beneficiaryCursor = 0;
 
-        boolean redistributed = true;
-        while(remaining > 0 && redistributed) {
-            redistributed = false;
-            List<Long> withSpare = workers.stream()
-                    .filter(w -> assignedMap.get(w.getId()) < CAPACITY_PER_WORKER)
-                    .map(Worker::getId)
-                    .collect(Collectors.toList());
+        List<WorkerDailyAssignment> newAssignments = new ArrayList<>();
 
-            if (withSpare.isEmpty()) break;
+        for (int i = 0; i < numWorkers; i++) {
+            Worker worker = workers.get(i);
 
-            int m = withSpare.size();
-            int per = remaining / m;
-            int rem2 = remaining % m;
+            // Calculate how many tasks THIS worker gets
+            // Workers at index 0 to remainder-1 get +1 task
+            int countForThisWorker = baseAssignment + (i < remainder ? 1 : 0);
 
-            if(per==0 && rem2==0) break;
+            // Skip if logic results in 0 (unlikely if load > workers)
+            if (countForThisWorker == 0) continue;
 
-            for(int i =0; i< withSpare.size() && remaining > 0; i++) {
-                Long wid = withSpare.get(i);
-                int spare = CAPACITY_PER_WORKER - assignedMap.get(wid);
-                int add = per + (i < rem2 ? 1 : 0);
-                if (add <= 0) continue;
-                int delta = Math.min(spare, add);
-                if (delta > 0) {
-                    assignedMap.put(wid, assignedMap.get(wid) + delta);
-                    remaining -= delta;
-                    redistributed = true;
-                }
-            }
-
-            }
-
-            int leftoverForNextDay = Math.min(0, remaining);
-
-        for (Worker w : workers) {
-            int assigned = assignedMap.get(w.getId());
+            // Create the Parent Assignment
             WorkerDailyAssignment assignment = WorkerDailyAssignment.builder()
-                    .worker(w)
-                    .center(centerOpt.get())
+                    .worker(worker)
+                    .center(center)
                     .date(date)
-                    .assigned(assigned)
+                    .assigned(countForThisWorker)
                     .completed(0)
+                    .tasks(new ArrayList<>()) // Initialize the list
                     .build();
-            assignments.add(assignment);
-        }
-        workerDailyAssignmentRepository.saveAll(assignments);
-        log.info("Saved {} assignments for center={} date={}", assignments.size(), centerId, date);
-        if (leftoverForNextDay > 0) {
-            saveOverflow(centerId, date.plusDays(1), leftoverForNextDay);
-            log.info("Leftover for center={} date={}", centerId, date);
-        }else {
-            log.info("No leftover for center={} date={}", centerId, date);
+
+            // Create the Child Tasks (AssignmentTask)
+            for (int j = 0; j < countForThisWorker; j++) {
+                // Get the next beneficiary from the list
+                Beneficiary b = beneficiariesToAssign.get(beneficiaryCursor++);
+
+                AssignmentTask task = AssignmentTask.builder()
+                        .assignment(assignment) // Link Parent
+                        .beneficiary(b)         // Link Beneficiary
+                        .status("PENDING")      // Default status
+                        .build();
+
+                assignment.getTasks().add(task);
+            }
+
+            newAssignments.add(assignment);
         }
 
+        // Saving assignments will cascade and save all AssignmentTasks
+        workerDailyAssignmentRepository.saveAll(newAssignments);
+        log.info("Successfully created assignments for {} workers with specific tasks.", newAssignments.size());
+
+        // 7. Handle Overflow
+        if (overflowCount > 0) {
+            log.info("Capacity exceeded by {}. Saving to overflow stats.", overflowCount);
+            // We record the number of people we couldn't assign
+            saveOverflow(center, date.plusDays(1), overflowCount);
+        } else {
+            log.info("All due beneficiaries assigned. No overflow.");
         }
-    private void saveOverflow(Long centerId, LocalDate date, int leftover) {
-        if (leftover <= 0) return;
-        // merge with existing overflow for that date (if any)
-        LoadOverflow overflow = loadOverflowRepository.findByCenter_IdAndDate(centerId, date)
-                .orElse(LoadOverflow.builder().center(centerRepository.getReferenceById(centerId)).date(date).leftover(0).build());
-        overflow.setLeftover(overflow.getLeftover() + leftover);
+    }
+
+    private void saveOverflow(Center center, LocalDate date, int amount) {
+        if (amount <= 0) return;
+
+        LoadOverflow overflow = loadOverflowRepository.findByCenter_IdAndDate(center.getId(), date)
+                .orElse(LoadOverflow.builder()
+                        .center(center)
+                        .date(date)
+                        .leftover(0)
+                        .build());
+
+        overflow.setLeftover(overflow.getLeftover() + amount);
         loadOverflowRepository.save(overflow);
     }
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
