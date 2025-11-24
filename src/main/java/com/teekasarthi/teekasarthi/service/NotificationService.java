@@ -22,8 +22,7 @@ public class NotificationService {
                 + "📋 Name       : " + beneficiary.getName() + "\n"
                 + "📞 Phone No.  : " + beneficiary.getPhoneNo() + "\n"
                 + "🆔 Member Type: " + beneficiary.getMembertype() + "\n"
-                + "🏙️ City       : " + beneficiary.getCity() + "\n"
-                + "🏥 Center     : " + beneficiary.getCenterName() + "\n\n"
+                + "🏙️ City       : " + beneficiary.getCity() + "\n\n"
                 + "Please log in to the dashboard for more details.\n\n"
                 + "Regards,\n"
                 + "Teeka Sarthi System");

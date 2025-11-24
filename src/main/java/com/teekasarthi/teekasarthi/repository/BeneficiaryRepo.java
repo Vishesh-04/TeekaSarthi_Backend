@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +20,5 @@ public interface BeneficiaryRepo extends JpaRepository<Beneficiary, Long> {
     List<Beneficiary> findByStatus(String status);
     Optional<Beneficiary> findById(Long id);
     List<Beneficiary> findByEmail(String email);
+    Long countByCenterIdAndNextDueDate(Long centerId, LocalDate nextDueDate);
 }
