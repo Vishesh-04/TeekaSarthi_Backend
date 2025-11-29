@@ -45,7 +45,9 @@ public class SecurityConfig {
                                 "/api/stock",
                                 "/api/stock/**",
                                 "/api/supervisor/**",
-                                "/api/supervisor/distribution/**"
+                                "/api/supervisor/distribution/**",
+                                "api/worker/auth/login",
+                                "api/supervisor/auth/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
