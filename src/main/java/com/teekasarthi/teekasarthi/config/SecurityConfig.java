@@ -33,18 +33,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/register",
-                                "/api/auth/verify-register",
-                                "/api/auth/login",
-                                "/api/auth/verify-login",
-                                "/api/beneficiaries/**",   // ✅ allow all beneficiary routes
+                        .requestMatchers(// ✅ allow all beneficiary routes
                                 "/hello/test",
                                 "api/schedules/beneficiary/**",
                                 "api/worker/**",
                                 "api/stock",
                                 "api/stock/**",
                                 "api/supervisor/**",
+                                "api/worker/auth/login",
+                                "api/supervisor/auth/**",
                                 "api/supervisor/distribution/**"
                         ).permitAll()
                         .anyRequest().authenticated()
