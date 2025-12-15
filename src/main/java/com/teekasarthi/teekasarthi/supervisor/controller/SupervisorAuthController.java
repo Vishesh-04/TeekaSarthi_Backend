@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/supervisor/auth")
-@CrossOrigin(origins = "http://localhost:3000")
 public class SupervisorAuthController {
 
     private final SupervisorAuth supervisorAuth;
