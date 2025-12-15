@@ -34,15 +34,33 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(// ✅ allow all beneficiary routes
+                                "api/auth/**",
+                                "api/auth/login",
+                                "api/auth/register",
+                                "api/auth/verify-register",
+                                "api/auth/send-otp",
+                                "api/auth/reset-password",
+                                "api/auth/verify-login",
                                 "/hello/test",
-                                "api/schedules/beneficiary/**",
-                                "api/worker/**",
-                                "api/stock",
-                                "api/stock/**",
-                                "api/supervisor/**",
                                 "api/worker/auth/login",
-                                "api/supervisor/auth/**",
-                                "api/supervisor/distribution/**"
+                                "/api/schedules/beneficiary/**",
+                                "/api/worker/**",
+                                "api/supervisor/distribution/worker/**",
+                                "api/beneficiaries/pending/**",
+                                "api/stock/center/**",
+                                "/api/stock",
+                                "/api/stock/**",
+                                "api/worker/verify/**",
+                                "api/worker/reject/**",
+                                "/api/beneficiaries/email/**",
+                                "api/beneficiaries/**",
+                                "/api/supervisor/**",
+                                "api/beneficiaries/pending",
+                                "api/worker/verified-beneficiaries",
+                                "/api/supervisor/distribution/**",
+                                "api/worker/vaccinate",
+                                "api/worker/auth/login",
+                                "api/supervisor/auth/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

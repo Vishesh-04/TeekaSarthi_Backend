@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/stock")
 public class VaccineStockController {
@@ -19,11 +18,19 @@ public class VaccineStockController {
     @Autowired
     private VaccineStockService vaccineStockService;
 
-    @GetMapping
-    public List<VaccineStock> getAllStock() {
-        return vaccineStockService.findAllStock();
+    // 1. GET ALL STOCK FOR A SPECIFIC CENTER
+    // Endpoint: GET /api/stock/center/{centerId}
+    @GetMapping("/center/{centerId}")
+    public ResponseEntity<List<VaccineStock>> getStockByCenter(@PathVariable Long centerId) {
+        List<VaccineStock> stocks = vaccineStockService.findStockByCenterId(centerId);
+        if (stocks.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(stocks);
     }
 
+    // 2. GET SINGLE STOCK ITEM BY STOCK ID (Unchanged, ID is unique)
+    // Endpoint: GET /api/stock/{id}
     @GetMapping("/{id}")
     public ResponseEntity<VaccineStock> getStockById(@PathVariable Long id) {
         Optional<VaccineStock> stock = vaccineStockService.findStockById(id);
@@ -31,24 +38,34 @@ public class VaccineStockController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<VaccineStock> createStock(@RequestBody VaccineStock vaccineStock) {
-        VaccineStock savedStock = vaccineStockService.saveStock(vaccineStock);
+    // 3. CREATE STOCK LINKED TO A SPECIFIC CENTER
+    // Endpoint: POST /api/stock/center/{centerId}
+    @PostMapping("/center/{centerId}")
+    public ResponseEntity<VaccineStock> addStockToCenter(@PathVariable Long centerId, @RequestBody VaccineStock vaccineStock) {
+        // You must update your Service to handle the logic of finding the Center
+        // by ID and setting it to the vaccineStock object before saving.
+        VaccineStock savedStock = vaccineStockService.addStockToCenter(centerId, vaccineStock);
         return new ResponseEntity<>(savedStock, HttpStatus.CREATED);
     }
 
+    // 4. UPDATE STOCK (Unchanged, updates specific row by ID)
+    // Endpoint: PUT /api/stock/{id}
     @PutMapping("/{id}")
     public ResponseEntity<VaccineStock> updateStock(@PathVariable Long id, @RequestBody VaccineStock updatedStock) {
         return vaccineStockService.findStockById(id)
                 .map(existingStock -> {
                     updatedStock.setId(id);
-                    // This calls the service layer which handles the calculation and reset
+                    // Ensure the existing center association is preserved if not passed in body
+                    updatedStock.setCenter(existingStock.getCenter());
+
                     VaccineStock savedStock = vaccineStockService.saveStock(updatedStock);
                     return ResponseEntity.ok(savedStock);
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // 5. UPDATE STATUS (Unchanged)
+    // Endpoint: PATCH /api/stock/{id}/status
     @PatchMapping("/{id}/status")
     public ResponseEntity<VaccineStock> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String newStatus = payload.get("status");
@@ -60,6 +77,8 @@ public class VaccineStockController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    // 6. DELETE STOCK
+    // Endpoint: DELETE /api/stock/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStock(@PathVariable Long id) {
         if (vaccineStockService.findStockById(id).isPresent()) {

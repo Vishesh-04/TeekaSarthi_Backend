@@ -3,6 +3,7 @@ package com.teekasarthi.teekasarthi.supervisor.jobs;
 import com.teekasarthi.teekasarthi.supervisor.entity.Center;
 import com.teekasarthi.teekasarthi.supervisor.repository.CenterRepository;
 import com.teekasarthi.teekasarthi.supervisor.services.ScheduleDistributionService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,17 +20,28 @@ public class DoseDistributionScheduler {
     private final ScheduleDistributionService distributionService;
     private final CenterRepository centerRepository;
 
-    @Scheduled(cron = "0 10 0 * * *")
+    // Runs every day at 00:10 AM (Midnight + 10 mins)
+    @Scheduled(cron = "0 14 17 * * *", zone = "Asia/Kolkata")
     public void runDistributionForAllCenters() {
-        log.info("Running nightly dose distribution job");
+        log.info("Running scheduled dose distribution job");
+
         List<Center> centers = centerRepository.findAll();
-        LocalDate target = LocalDate.now().plusDays(1); // distribute for next day (so workers see assignments in morning)
+        LocalDate targetDate = LocalDate.now();
+
         for (Center c : centers) {
             try {
-                distributionService.distributeForCenterAndDate(c.getId(), target);
+                distributionService.distributeForCenterAndDate(c.getId(), targetDate);
             } catch (Exception e) {
                 log.error("Failed to distribute for center {}: {}", c.getId(), e.getMessage(), e);
             }
         }
+
+        log.info("Distribution job completed for: {}", targetDate);
     }
+    @PostConstruct
+    public void test() {
+        System.out.println("Scheduler bean initialized!");
+    }
+
+
 }

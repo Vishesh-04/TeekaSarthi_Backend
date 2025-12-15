@@ -31,6 +31,45 @@ public class NotificationService {
         System.out.println("Email sent to " + beneficiary.getEmail());
         return ("Email Sent Successfully to " + beneficiary.getEmail());
     }
+    public String sendBeneficiaryVerifiedNotification(Beneficiary beneficiary) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("teekasarthi@gmail.com");
+        message.setTo(beneficiary.getEmail());
+
+        // Using a Check Mark emoji for positive feedback
+        message.setSubject("✅ Registration Verified - Teeka Sarthi");
+
+        message.setText("Hello " + beneficiary.getName() + ",\n\n"
+                + "Great news! Your registration details have been successfully verified by the Anganwadi worker.\n\n"
+                + "🎉 You are now a verified member of the Teeka Sarthi platform.\n\n"
+                + "You can now log in to the dashboard to:\n"
+                + "- View upcoming vaccination schedules\n"
+                + "- Download vaccination certificates\n"
+                + "- Book appointment slots\n\n"
+                + "Regards,\n"
+                + "Teeka Sarthi Team");
+
+        mailSender.send(message);
+        System.out.println("Verification email sent to " + beneficiary.getEmail());
+        return ("Verification Email Sent Successfully to " + beneficiary.getEmail());
+    }
+    public String sendBeneficiaryRejectedNotification(Beneficiary beneficiary) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("teekasarthi@gmail.com");
+        message.setTo(beneficiary.getEmail());
+
+        // Using a Check Mark emoji for positive feedback
+        message.setSubject("✅ Registration Rejected - Teeka Sarthi");
+
+        message.setText("Hello " + beneficiary.getName() + ",\n\n"
+                + "Great news! Your registration details have been Rejected by the Anganwadi worker.\n\n"
+                + "Regards,\n"
+                + "Teeka Sarthi Team");
+
+        mailSender.send(message);
+        System.out.println("Rejection email sent to " + beneficiary.getEmail());
+        return ("Rejection Email Sent Successfully to " + beneficiary.getEmail());
+    }
 
     public String sendOtp(String email, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();

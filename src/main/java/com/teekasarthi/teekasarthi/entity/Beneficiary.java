@@ -49,4 +49,7 @@ public class Beneficiary {
     private String photo;
 
 
+    public String getPhoneNumber() {
+        return phoneNo;
+    }
 }

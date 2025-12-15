@@ -1,9 +1,9 @@
 package com.teekasarthi.teekasarthi.vaccination.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.teekasarthi.teekasarthi.supervisor.entity.Center;
+import jakarta.persistence.*;
+
 import java.time.LocalDate;
 
 // This annotation marks this class as a JPA entity,
@@ -23,6 +23,19 @@ public class VaccineStock {
     private int receivedStock;
     private LocalDate expiryDate;
     private String status;
+
+    public Center getCenter() {
+        return center;
+    }
+
+    public void setCenter(Center center) {
+        this.center = center;
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "center_id")
+    @JsonBackReference // prevent recursion Center → Worker → Center → ...
+    private Center center;
 
     // JPA requires a no-argument constructor.
     public VaccineStock() {

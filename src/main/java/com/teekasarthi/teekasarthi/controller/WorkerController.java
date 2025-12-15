@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin (origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/worker")
 public class WorkerController {
@@ -18,6 +17,12 @@ public class WorkerController {
     public ResponseEntity<?> verify(@PathVariable Long id,
                                     @RequestBody VerifyBeneficiary dto) {
         workerService.beneficiaryVerification(id, dto);
+        return ResponseEntity.ok("Beneficiary verified successfully");
+    }
+    @PostMapping("/reject/{id}")
+    public ResponseEntity<?> reject(@PathVariable Long id,
+                                    @RequestBody VerifyBeneficiary dto) {
+        workerService.beneficiaryRejection(id, dto);
         return ResponseEntity.ok("Beneficiary verified successfully");
     }
 

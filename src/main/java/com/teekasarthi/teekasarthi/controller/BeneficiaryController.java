@@ -16,8 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
-
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/beneficiaries")
 public class BeneficiaryController {
@@ -86,10 +85,10 @@ public class BeneficiaryController {
         return ResponseEntity.ok(beneficiaries);
     }
 
-    @GetMapping("/pending")
-    public ResponseEntity<List<Beneficiary>> getPendingBeneficiaries() {
+    @GetMapping("/pending/{center_id}")
+    public ResponseEntity<List<Beneficiary>> getPendingBeneficiaries(@PathVariable Long center_id) {
         try {
-            List<Beneficiary> pendingBeneficiaries = beneficiaryService.getPendingBeneficiaries();
+            List<Beneficiary> pendingBeneficiaries = beneficiaryService.getPendingBeneficiaries(center_id);
             return ResponseEntity.ok(pendingBeneficiaries);
         } catch (Exception e) {
             e.printStackTrace();
