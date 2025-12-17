@@ -1,6 +1,7 @@
 package com.teekasarthi.teekasarthi.supervisor.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.teekasarthi.teekasarthi.entity.Beneficiary;
 import jakarta.persistence.*;
 import lombok.*;
@@ -31,4 +32,22 @@ public class AssignmentTask {
     // Track status for THIS specific task (e.g., "PENDING", "VACCINATED", "ABSENT")
     @Builder.Default
     private String status = "PENDING";
+    @Column(name = "proof_photo_url")
+    private String proofPhotoUrl;
+
+    @JsonProperty("workerName")
+    public String getWorkerName() {
+        if (assignment != null && assignment.getWorker() != null) {
+            return assignment.getWorker().getName();
+        }
+        return "Unknown";
+    }
+
+    // Getters and Setters...
+    public void setProofPhotoUrl(String proofPhotoUrl) {
+        this.proofPhotoUrl = proofPhotoUrl;
+    }
+    public String getProofPhotoUrl() {
+        return proofPhotoUrl;
+    }
 }

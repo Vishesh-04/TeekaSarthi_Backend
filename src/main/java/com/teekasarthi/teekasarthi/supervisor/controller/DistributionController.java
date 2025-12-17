@@ -1,9 +1,7 @@
 package com.teekasarthi.teekasarthi.supervisor.controller;
 
-import com.teekasarthi.teekasarthi.supervisor.dto.ApiResponse;
-import com.teekasarthi.teekasarthi.supervisor.dto.CenterDTO;
-import com.teekasarthi.teekasarthi.supervisor.dto.WorkerDTO;
-import com.teekasarthi.teekasarthi.supervisor.dto.WorkerDailyAssignmentDTO;
+import com.teekasarthi.teekasarthi.supervisor.dto.*;
+import com.teekasarthi.teekasarthi.supervisor.entity.AssignmentTask;
 import com.teekasarthi.teekasarthi.supervisor.entity.WorkerDailyAssignment;
 import com.teekasarthi.teekasarthi.supervisor.repository.WorkerDailyAssignmentRepository;
 import com.teekasarthi.teekasarthi.supervisor.services.ScheduleDistributionService;
@@ -27,6 +25,7 @@ public class DistributionController {
     private final WorkerDailyAssignmentRepository assignmentRepository;
 
     private WorkerDailyAssignmentDTO toDTO(WorkerDailyAssignment a) {
+        // 1. Map Worker
         WorkerDTO workerDTO = new WorkerDTO(
                 a.getWorker().getId(),
                 a.getWorker().getName(),
@@ -34,18 +33,27 @@ public class DistributionController {
                 a.getWorker().getEmployeeCode()
         );
 
+        // 2. Map Center
         CenterDTO centerDTO = new CenterDTO(
                 a.getCenter().getId(),
                 a.getCenter().getCode()
         );
 
+        // 3. Filter & Map Tasks (The missing part)
+        List<AssignmentTaskDTO> taskDTOs = a.getTasks().stream()
+                .filter(task -> "PENDING".equals(task.getStatus())) // Filter only PENDING
+                .map(AssignmentTaskDTO::fromEntity) // Convert to DTO
+                .toList(); // or .collect(Collectors.toList());
+
+        // 4. Return DTO with the tasks list included
         return new WorkerDailyAssignmentDTO(
                 a.getId(),
                 a.getDate(),
                 a.getAssigned(),
                 a.getCompleted(),
                 workerDTO,
-                centerDTO
+                centerDTO,
+                taskDTOs // <--- Add this argument!
         );
     }
 
@@ -75,17 +83,28 @@ public class DistributionController {
         );
     }
 
-    // Worker view: get assignment for worker for today (or provided date)
     @GetMapping("/worker/{workerId}")
     public ResponseEntity<ApiResponse> getAssignmentForWorker(
             @PathVariable Long workerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
         LocalDate target = (date == null) ? LocalDate.now() : date;
-        List<WorkerDailyAssignment> list = assignmentRepository.findByWorker_IdAndDate(workerId, target);
+
+        // 1. Fetch the whole assignment (including all tasks)
+        List<WorkerDailyAssignment> assignments = assignmentRepository.findByWorker_IdAndDate(workerId, target);
+
+        // 2. Filter: Keep only tasks where status is "PENDING"
+        for (WorkerDailyAssignment assignment : assignments) {
+            List<AssignmentTask> pendingTasks = assignment.getTasks().stream()
+                    .filter(task -> "PENDING".equals(task.getStatus())) // <--- The Filter
+                    .toList(); // or .collect(Collectors.toList()) for older Java
+
+            assignment.setTasks(pendingTasks);
+        }
+
         return ResponseEntity.ok(
-                new ApiResponse(true, "Worker assignment fetched",
-                        list.stream().map(this::toDTO).toList()
+                new ApiResponse(true, "Pending worker assignments fetched",
+                        assignments.stream().map(this::toDTO).toList()
                 )
         );
     }

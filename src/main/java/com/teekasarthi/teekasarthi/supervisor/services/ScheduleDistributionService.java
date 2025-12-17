@@ -54,8 +54,7 @@ public class ScheduleDistributionService {
 
         // 1. Fetch Actual Beneficiaries (The Workload)
         // We need the actual entities now, not just the count.
-        List<Beneficiary> allBeneficiaries = beneficiaryRepo.findAllByCenterIdAndNextDueDate(centerId, date);
-        int totalLoad = allBeneficiaries.size();
+        List<Beneficiary> allBeneficiaries = beneficiaryRepo.findAllByCenterIdAndNextDueDateAndVerifiedTrue(centerId, date);        int totalLoad = allBeneficiaries.size();
         log.info("Found {} beneficiaries due for center {}", totalLoad, centerId);
 
         // Note: We are ignoring 'LoadOverflow' table for fetching here because

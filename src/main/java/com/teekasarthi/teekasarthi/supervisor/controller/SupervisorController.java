@@ -1,11 +1,13 @@
 package com.teekasarthi.teekasarthi.supervisor.controller;
 
 import com.teekasarthi.teekasarthi.supervisor.dto.ApiResponse;
+import com.teekasarthi.teekasarthi.supervisor.entity.AssignmentTask;
 import com.teekasarthi.teekasarthi.supervisor.services.SupervisorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/supervisor")
@@ -14,6 +16,19 @@ import org.springframework.web.bind.annotation.*;
 public class SupervisorController {
 
     private final SupervisorService supervisorService;
+
+    @GetMapping("/center/{centerId}/tasks")
+    public ResponseEntity<?> getCenterTasks(@PathVariable Long centerId) {
+
+        List<AssignmentTask> tasks = supervisorService.getTasksByCenter(centerId);
+
+        // Wrap response in a structure compatible with your React code: res.data.data
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", tasks);
+
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * GET /api/supervisor/{supervisorId}/centers

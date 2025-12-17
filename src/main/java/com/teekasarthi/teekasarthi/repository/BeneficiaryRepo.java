@@ -22,7 +22,6 @@ public interface BeneficiaryRepo extends JpaRepository<Beneficiary, Long> {
     List<Beneficiary> findByEmail(String email);
     Long countByCenterIdAndNextDueDate(Long centerId, LocalDate nextDueDate);
 
-    List<Beneficiary> findAllByCenterIdAndNextDueDate(Long centerId, LocalDate date);
-
+    List<Beneficiary> findAllByCenterIdAndNextDueDateAndVerifiedTrue(Long centerId, LocalDate date);
     List<Beneficiary> findByStatus(String status);
 }

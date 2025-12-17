@@ -60,7 +60,9 @@ public class SecurityConfig {
                                 "/api/supervisor/distribution/**",
                                 "api/worker/vaccinate",
                                 "api/worker/auth/login",
-                                "api/supervisor/auth/**"
+                                "api/supervisor/auth/**",
+                                "api/center/**",
+                                "api/attendance/*"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

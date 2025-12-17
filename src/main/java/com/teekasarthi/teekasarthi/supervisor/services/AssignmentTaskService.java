@@ -22,7 +22,7 @@ public class AssignmentTaskService {
         // Default to TODAY if date is null
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
 
-        List<AssignmentTask> tasks = assignmentTaskRepository.findTasksByWorkerAndDate(workerId, targetDate);
+        List<AssignmentTask> tasks = assignmentTaskRepository.findPendingTasks(workerId, targetDate);
 
         return tasks.stream()
                 .map(this::mapToDTO)

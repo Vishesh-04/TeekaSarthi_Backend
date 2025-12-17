@@ -21,7 +21,7 @@ public class DoseDistributionScheduler {
     private final CenterRepository centerRepository;
 
     // Runs every day at 00:10 AM (Midnight + 10 mins)
-    @Scheduled(cron = "0 14 17 * * *", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 52 13 * * *", zone = "Asia/Kolkata")
     public void runDistributionForAllCenters() {
         log.info("Running scheduled dose distribution job");
 

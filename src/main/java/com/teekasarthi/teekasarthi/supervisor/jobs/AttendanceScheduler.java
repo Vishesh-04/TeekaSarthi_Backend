@@ -13,9 +13,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class AttendanceScheduler {
-
-    // Cron expression: second minute hour day month weekday
-    // Provided placeholder: "0 10 0 * * *" -> at 00:10 every day
     @Scheduled(cron = "0 10 0 * * *")
     public void runAutoAttendance() {
         log.info("Running auto-attendance job for supervisors module");
