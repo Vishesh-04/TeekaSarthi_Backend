@@ -35,6 +35,15 @@ public class AssignmentTask {
     @Column(name = "proof_photo_url")
     private String proofPhotoUrl;
 
+    @Column(name = "submission_latitude")
+    private String submissionLatitude;
+
+    @Column(name = "submission_longitude")
+    private String submissionLongitude;
+
+    @Column(name = "submission_address")
+    private String submissionAddress;
+
     @JsonProperty("workerName")
     public String getWorkerName() {
         if (assignment != null && assignment.getWorker() != null) {

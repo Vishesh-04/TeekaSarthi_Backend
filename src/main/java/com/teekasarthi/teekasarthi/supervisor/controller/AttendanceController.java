@@ -18,13 +18,13 @@ public class AttendanceController {
 
     @PostMapping("/submit")
     public ResponseEntity<?> submitBulkAttendance(
-            MultipartHttpServletRequest request, // Handles dynamic files
+            MultipartHttpServletRequest request,
             @RequestParam("workerId") Long workerId,
             @RequestParam("centerId") Long centerId,
             @RequestParam("latitude") String latitude,
             @RequestParam("longitude") String longitude,
             @RequestParam(value = "location", required = false) String location,
-            @RequestParam("taskId") Long assignmentId // This is the ID of the Schedule (e.g., 77)
+            @RequestParam("taskId") Long assignmentId
     ) {
         System.out.println("Processing Bulk Attendance for Assignment ID: " + assignmentId);
 
@@ -35,10 +35,8 @@ public class AttendanceController {
 
             Iterator<String> iterator = request.getFileNames();
 
-            // Loop through all uploaded files (keys like "photo_4", "photo_6")
             while (iterator.hasNext()) {
                 String key = iterator.next();
-
                 if (key.startsWith("photo_")) {
                     String idString = key.replace("photo_", "");
                     try {
@@ -58,16 +56,17 @@ public class AttendanceController {
                 }
             }
 
-            // 2. Validate
             if (beneficiaryPhotos.isEmpty()) {
                 return ResponseEntity.badRequest().body("No beneficiary photos provided.");
             }
 
-            // 3. Call Service
+            // 👇 UPDATED CALL: Added latitude and longitude
             attendanceService.processBulkAttendance(
                     workerId,
                     centerId,
                     location,
+                    latitude,   // <--- Added
+                    longitude,  // <--- Added
                     assignmentId,
                     beneficiaryPhotos,
                     beneficiaryDates

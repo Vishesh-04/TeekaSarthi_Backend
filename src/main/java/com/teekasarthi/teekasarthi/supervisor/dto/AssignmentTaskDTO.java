@@ -12,6 +12,9 @@ public class AssignmentTaskDTO {
     private Long id;
     private Long assignmentId; // Reference to parent ID only
     private String status;
+    private String submissionLatitude;
+    private String submissionLongitude;
+    private String submissionAddress;
 
     // Flattened Beneficiary Details for easier Frontend display
     private Long beneficiaryId;
@@ -27,6 +30,9 @@ public class AssignmentTaskDTO {
                 .beneficiaryDob(task.getBeneficiary().getDob().toString()) // Date converted to String
                 .status(task.getStatus())
                 .assignmentId(task.getAssignment().getId())
+                .submissionLatitude(task.getSubmissionLatitude())
+                .submissionLongitude(task.getSubmissionLongitude())
+                .submissionAddress(task.getSubmissionAddress())
                 // Safe handling in case beneficiary is somehow null (though nullable=false)
                 .beneficiaryId(task.getBeneficiary() != null ? task.getBeneficiary().getId() : null)
                 .beneficiaryName(task.getBeneficiary() != null ? task.getBeneficiary().getName() : "Unknown")

@@ -31,7 +31,9 @@ public class AttendanceService {
     public void processBulkAttendance(
             Long workerId,
             Long centerId,
-            String location,
+            String location, // This maps to submissionAddress
+            String latitude, // 👇 Added Parameter
+            String longitude, // 👇 Added Parameter
             Long assignmentId,
             Map<Long, MultipartFile> photos,
             Map<Long, String> nextDueDates
@@ -61,18 +63,21 @@ public class AttendanceService {
                 AssignmentTask task = assignmentTaskRepository.findByAssignmentIdAndBeneficiaryId(assignmentId, beneficiaryId)
                         .orElseThrow(() -> new RuntimeException("Task not found for Assignment " + assignmentId));
 
-                // --- SAVE PROOF OF VISIT ---
-                // Stores the Cloudinary URL in the database
+                // --- SAVE PROOF & LOCATION ---
                 task.setProofPhotoUrl(photoUrl);
 
+                // 👇 Save the location coordinates where the proof was submitted
+                task.setSubmissionLatitude(latitude);
+                task.setSubmissionLongitude(longitude);
+                task.setSubmissionAddress(location); // using the 'location' string as the address
+
                 // 4. Update Status & Counts (Only if not already successful)
-                // This check prevents double-counting if they re-upload a photo for the same person
                 if (!"SUCCESS".equals(task.getStatus())) {
                     task.setStatus("SUCCESS");
-                    successfulUpdates.incrementAndGet(); // Only increment for NEW successes
+                    successfulUpdates.incrementAndGet();
                 }
 
-                // Save the task (updates photo URL and Status)
+                // Save the task
                 assignmentTaskRepository.save(task);
 
             } catch (Exception e) {
@@ -82,24 +87,21 @@ public class AttendanceService {
         });
 
         // --- STEP 5: Update Parent Assignment Counts ---
-        // Only update if we actually marked new tasks as success
         if (successfulUpdates.get() > 0) {
             WorkerDailyAssignment assignment = workerDailyAssignmentRepository.findById(assignmentId)
                     .orElseThrow(() -> new RuntimeException("Assignment not found: " + assignmentId));
 
-            // Decrement Assigned (Logic: remaining tasks decrease)
+            // Decrement Assigned
             int currentAssigned = assignment.getAssigned();
             int newAssigned = Math.max(0, currentAssigned - successfulUpdates.get());
             assignment.setAssigned(newAssigned);
 
-            // Increment Completed (Logic: finished tasks increase)
+            // Increment Completed
             int currentCompleted = assignment.getCompleted();
             int newCompleted = currentCompleted + successfulUpdates.get();
             assignment.setCompleted(newCompleted);
 
             workerDailyAssignmentRepository.save(assignment);
-            System.out.println("Updated Assignment ID " + assignmentId +
-                    ": Assigned=" + newAssigned + ", Completed=" + newCompleted);
         }
     }
 }
