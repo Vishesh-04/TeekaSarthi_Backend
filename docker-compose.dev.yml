@@ -20,7 +20,7 @@ services:
       SPRING_APPLICATION_NAME: teekasarthi
       SPRING_DATASOURCE_URL: jdbc:postgresql://immuno-track-krishi-sarthi-backend.j.aivencloud.com:17859/defaultdb?sslmode=require
       SPRING_DATASOURCE_USERNAME: avnadmin
-      SPRING_DATASOURCE_PASSWORD: AVNS_AjAvs8-qrgp73XQw47f
+      SPRING_DATASOURCE_PASSWORD: ${AIVEN_DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
       SPRING_MAIL_HOST: smtp.gmail.com
